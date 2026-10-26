@@ -1,18 +1,5 @@
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
+package com.awl1sh.healthsteptrackerpro
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+import android.app.Application
 
-rootProject.name = "HealthStepTrackerPro"
-include(":app")
+class MainApplication : Application()

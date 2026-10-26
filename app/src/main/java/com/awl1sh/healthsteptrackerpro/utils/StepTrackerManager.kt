@@ -1,71 +1,101 @@
-package com.awl1sh.healthsteptrackerpro.utils
+package com.awl1sh.healthsteptrackerpro.ui.screens
 
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.awl1sh.healthsteptrackerpro.ui.viewmodels.HealthViewModel
 
-class StepTrackerManager(context: Context) : SensorEventListener {
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-    private val stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    viewModel: HealthViewModel,
+    navController: NavController
+) {
+    val state = viewModel.uiState.collectAsState().value
+    val notificationsOn = remember { mutableStateOf(true) }
+    val darkMode = remember { mutableStateOf(true) }
 
-    private var initialCounter: Float? = null
-    private var currentSteps = 0
-
-    private val _stepsFlow = MutableStateFlow(0)
-    val stepsFlow = _stepsFlow.asStateFlow()
-
-    fun start() {
-        if (stepCounterSensor != null) {
-            sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_UI)
-        }
-        if (stepDetectorSensor != null) {
-            sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_UI)
-        }
-    }
-
-    fun stop() {
-        sensorManager.unregisterListener(this)
-    }
-
-    fun getCurrentSteps(): Int = currentSteps
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event == null) return
-        when (event.sensor.type) {
-            Sensor.TYPE_STEP_COUNTER -> {
-                val totalSinceBoot = event.values[0]
-                if (initialCounter == null) {
-                    initialCounter = totalSinceBoot
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = { Text("Settings") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-                currentSteps = (totalSinceBoot - (initialCounter ?: totalSinceBoot)).toInt()
-                _stepsFlow.value = currentSteps
             }
-            Sensor.TYPE_STEP_DETECTOR -> {
-                currentSteps += 1
-                _stepsFlow.value = currentSteps
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Notifications")
+                    Switch(checked = notificationsOn.value, onCheckedChange = { notificationsOn.value = it })
+                }
             }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Dark mode")
+                    Switch(checked = darkMode.value, onCheckedChange = { darkMode.value = it })
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Daily goal: ${state.profile.goalSteps} steps")
+            Text("Hydration goal: ${state.profile.hydrationGoalLiters} L")
+            Text("Protein goal: ${state.profile.proteinGoalGrams} g")
         }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-}
-
-object HealthCalculator {
-    fun calculateCaloriesBurned(steps: Int, weightKg: Double): Double {
-        if (steps <= 0 || weightKg <= 0) return 0.0
-        return (steps * 0.04 * weightKg / 60.0)
-    }
-
-    fun calculateDistanceKm(steps: Int): Double {
-        return steps * 0.00076
-    }
-
-    fun calculateActiveMinutes(steps: Int): Int {
-        return (steps / 100).coerceAtLeast(0)
     }
 }

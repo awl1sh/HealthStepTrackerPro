@@ -1,43 +1,52 @@
-package com.awl1sh.healthsteptrackerpro.ui.theme
+package com.awl1sh.healthsteptrackerpro.data.repository
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.awl1sh.healthsteptrackerpro.data.model.UserProfile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-private val DarkColors = darkColorScheme(
-    primary = Color(0xFF7C4DFF),
-    secondary = Color(0xFF00C2FF),
-    background = Color(0xFF0F172A),
-    surface = Color(0xFF111827),
-    tertiary = Color(0xFF00E676),
-    onPrimary = Color.White,
-    onBackground = Color.White,
-    onSurface = Color.White
-)
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "health_step_tracker")
 
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF5E35B1),
-    secondary = Color(0xFF1E88E5),
-    background = Color(0xFFF4F7FB),
-    surface = Color(0xFFFFFFFF),
-    tertiary = Color(0xFF2E7D32),
-    onPrimary = Color.White,
-    onBackground = Color(0xFF111827),
-    onSurface = Color(0xFF111827)
-)
+class HealthRepository(private val context: Context) {
+    private val ageKey = intPreferencesKey("age")
+    private val genderKey = stringPreferencesKey("gender")
+    private val heightKey = intPreferencesKey("height_cm")
+    private val weightKey = doublePreferencesKey("weight_kg")
+    private val targetStepsKey = intPreferencesKey("goal_steps")
+    private val proteinGoalKey = intPreferencesKey("protein_goal")
+    private val caloriesGoalKey = intPreferencesKey("calories_goal")
+    private val hydrationGoalKey = doublePreferencesKey("hydration_goal_liters")
 
-@Composable
-fun HealthTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+    val profileFlow: Flow<UserProfile> = context.dataStore.data.map { prefs ->
+        UserProfile(
+            age = prefs[ageKey] ?: 28,
+            gender = prefs[genderKey] ?: "Male",
+            heightCm = prefs[heightKey] ?: 175,
+            weightKg = prefs[weightKey] ?: 72.0,
+            goalSteps = prefs[targetStepsKey] ?: 10000,
+            proteinGoalGrams = prefs[proteinGoalKey] ?: 150,
+            caloriesGoal = prefs[caloriesGoalKey] ?: 2200,
+            hydrationGoalLiters = prefs[hydrationGoalKey] ?: 2.5
+        )
+    }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content
-    )
+    suspend fun saveProfile(profile: UserProfile) {
+        context.dataStore.edit { prefs ->
+            prefs[ageKey] = profile.age
+            prefs[genderKey] = profile.gender
+            prefs[heightKey] = profile.heightCm
+            prefs[weightKey] = profile.weightKg
+            prefs[targetStepsKey] = profile.goalSteps
+            prefs[proteinGoalKey] = profile.proteinGoalGrams
+            prefs[caloriesGoalKey] = profile.caloriesGoal
+            prefs[hydrationGoalKey] = profile.hydrationGoalLiters
+        }
+    }
 }

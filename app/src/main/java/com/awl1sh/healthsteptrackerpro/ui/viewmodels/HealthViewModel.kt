@@ -1,126 +1,75 @@
-package com.awl1sh.healthsteptrackerpro.ui.viewmodels
+package com.awl1sh.healthsteptrackerpro
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.awl1sh.healthsteptrackerpro.data.model.NutritionEntry
-import com.awl1sh.healthsteptrackerpro.data.model.StepRecord
-import com.awl1sh.healthsteptrackerpro.data.model.UserProfile
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.awl1sh.healthsteptrackerpro.data.repository.HealthRepository
-import com.awl1sh.healthsteptrackerpro.utils.HealthCalculator
+import com.awl1sh.healthsteptrackerpro.ui.screens.HomeScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.NutritionScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.ProfileScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.SettingsScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.SplashScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.StepHistoryScreen
+import com.awl1sh.healthsteptrackerpro.ui.viewmodels.HealthViewModel
+import com.awl1sh.healthsteptrackerpro.ui.viewmodels.HealthViewModelFactory
 import com.awl1sh.healthsteptrackerpro.utils.StepTrackerManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import java.time.LocalDate
 
-data class HealthUiState(
-    val steps: Int = 0,
-    val caloriesBurned: Double = 0.0,
-    val distanceKm: Double = 0.0,
-    val activeMinutes: Int = 0,
-    val proteinConsumed: Int = 0,
-    val caloriesConsumed: Int = 0,
-    val hydrationLiters: Double = 0.0,
-    val profile: UserProfile = UserProfile(),
-    val nutritionEntries: List<NutritionEntry> = emptyList(),
-    val stepHistory: List<StepRecord> = emptyList()
-)
+@Composable
+fun HealthApp(tracker: StepTrackerManager) {
+    val navController = rememberNavController()
+    val context = LocalContext.current
+    val repository = HealthRepository(context.applicationContext)
+    val viewModel: HealthViewModel = viewModel(
+        factory = HealthViewModelFactory(repository = repository, stepTracker = tracker)
+    )
 
-class HealthViewModel(
-    private val repository: HealthRepository,
-    private val stepTracker: StepTrackerManager
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(HealthUiState())
-    val uiState: StateFlow<HealthUiState> = _uiState.asStateFlow()
+    val uiState by viewModel.uiState.collectAsState()
+    if (uiState.profile.goalSteps == 0) {
+        // ignore, profile defaults loaded from DataStore
+    }
 
-    init {
-        stepTracker.stepsFlow.onEach { steps ->
-            val profile = _uiState.value.profile
-            val calories = HealthCalculator.calculateCaloriesBurned(steps, profile.weightKg)
-            val distance = HealthCalculator.calculateDistanceKm(steps)
-            val minutes = HealthCalculator.calculateActiveMinutes(steps)
-
-            _uiState.update {
-                it.copy(
-                    steps = steps,
-                    caloriesBurned = calories,
-                    distanceKm = distance,
-                    activeMinutes = minutes,
-                    proteinConsumed = it.proteinConsumed,
-                    caloriesConsumed = it.caloriesConsumed,
-                    hydrationLiters = it.hydrationLiters,
-                    profile = it.profile,
-                    nutritionEntries = it.nutritionEntries,
-                    stepHistory = it.stepHistory
-                )
+    NavHost(
+        navController = navController,
+        startDestination = "splash"
+    ) {
+        composable("splash") {
+            SplashScreen {
+                navController.navigate("home") {
+                    popUpTo("splash") { inclusive = true }
+                }
             }
         }
 
-        repository.profileFlow.onEach { profile ->
-            _uiState.update { current ->
-                current.copy(profile = profile)
-            }
-        }
-    }
-
-    fun updateProfile(profile: UserProfile) {
-        repository.saveProfile(profile)
-        _uiState.update { it.copy(profile = profile) }
-    }
-
-    fun addNutrition(entry: NutritionEntry) {
-        val updated = _uiState.value.nutritionEntries + entry
-        val protein = updated.sumOf { it.proteinGrams }
-        val calories = updated.sumOf { it.calories }
-
-        _uiState.update {
-            it.copy(
-                nutritionEntries = updated,
-                proteinConsumed = protein,
-                caloriesConsumed = calories
+        composable("home") {
+            HomeScreen(
+                viewModel = viewModel,
+                navController = navController,
+                onOpenHistory = { navController.navigate("history") },
+                onOpenNutrition = { navController.navigate("nutrition") },
+                onOpenProfile = { navController.navigate("profile") },
+                onOpenSettings = { navController.navigate("settings") }
             )
         }
-    }
 
-    fun addHydration(amountLiters: Double) {
-        _uiState.update { it.copy(hydrationLiters = it.hydrationLiters + amountLiters) }
-    }
-
-    fun logDailyStepSnapshot() {
-        val current = _uiState.value
-        val record = StepRecord(
-            date = LocalDate.now(),
-            steps = current.steps,
-            caloriesBurned = current.caloriesBurned,
-            distanceKm = current.distanceKm
-        )
-        val updated = listOf(record) + current.stepHistory
-        _uiState.update { it.copy(stepHistory = updated.take(7)) }
-    }
-
-    fun refreshFromSensor() {
-        _uiState.update {
-            val steps = stepTracker.getCurrentSteps()
-            it.copy(
-                steps = steps,
-                caloriesBurned = HealthCalculator.calculateCaloriesBurned(steps, it.profile.weightKg),
-                distanceKm = HealthCalculator.calculateDistanceKm(steps),
-                activeMinutes = HealthCalculator.calculateActiveMinutes(steps)
-            )
+        composable("history") {
+            StepHistoryScreen(viewModel = viewModel, navController = navController)
         }
-    }
-}
 
-class HealthViewModelFactory(
-    private val repository: HealthRepository,
-    private val stepTracker: StepTrackerManager
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HealthViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return HealthViewModel(repository, stepTracker) as T
+        composable("nutrition") {
+            NutritionScreen(viewModel = viewModel, navController = navController)
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+
+        composable("profile") {
+            ProfileScreen(viewModel = viewModel, navController = navController)
+        }
+
+        composable("settings") {
+            SettingsScreen(viewModel = viewModel, navController = navController)
+        }
     }
 }

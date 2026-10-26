@@ -1,29 +1,37 @@
-package com.awl1sh.healthsteptrackerpro.data.model
+package com.awl1sh.healthsteptrackerpro
 
-import java.time.LocalDate
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.awl1sh.healthsteptrackerpro.ui.theme.HealthTheme
+import com.awl1sh.healthsteptrackerpro.utils.StepTrackerManager
 
-data class UserProfile(
-    val age: Int = 28,
-    val gender: String = "Male",
-    val heightCm: Int = 175,
-    val weightKg: Double = 72.0,
-    val goalSteps: Int = 10000,
-    val proteinGoalGrams: Int = 150,
-    val caloriesGoal: Int = 2200,
-    val hydrationGoalLiters: Double = 2.5
-)
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
-data class NutritionEntry(
-    val id: Long = System.currentTimeMillis(),
-    val name: String,
-    val calories: Int,
-    val proteinGrams: Int,
-    val date: LocalDate = LocalDate.now()
-)
+        setContent {
+            val context = LocalContext.current
+            val tracker = remember { StepTrackerManager(context.applicationContext) }
 
-data class StepRecord(
-    val date: LocalDate,
-    val steps: Int,
-    val caloriesBurned: Double,
-    val distanceKm: Double
-)
+            DisposableEffect(tracker) {
+                tracker.start()
+                onDispose { tracker.stop() }
+            }
+
+            HealthTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    HealthApp(tracker = tracker)
+                }
+            }
+        }
+    }
+}

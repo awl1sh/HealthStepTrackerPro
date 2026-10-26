@@ -1,35 +1,16 @@
-# Gradle files
-.gradle/
-build/
-.kotlin/
+# HealthStepTrackerPro
 
-# Local configuration file (sdk path, etc)
-local.properties
+A modern Android health and fitness app built with Kotlin, Jetpack Compose, and DataStore.
 
-# Log/OS Files
-*.log
+Features:
+- Real-time step counting via Android sensors
+- Activity metrics (distance, active minutes, calories burned)
+- Nutrition tracking for calories and protein
+- Body profile and goals (weight, height, age, step target, calorie target)
+- Dashboard, history, profile, and settings screens
 
-# Android Studio generated files and folders
-captures/
-.externalNativeBuild/
-.cxx/
-*.aab
-*.apk
-output-metadata.json
+## Build
+Open in Android Studio and run the app.
 
-# IntelliJ
-*.iml
-.idea/
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
-
-# Keystore files
-*.jks
-*.keystore
-
-# Google Services (e.g. APIs or Firebase)
-google-services.json
-
-# Android Profiling
-*.hprof
+## Notes
+On some devices, step counter permission and sensor availability may vary.

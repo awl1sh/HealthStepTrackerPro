@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -29,22 +31,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.awl1sh.healthsteptrackerpro.data.model.UserProfile
+import com.awl1sh.healthsteptrackerpro.data.model.NutritionEntry
 import com.awl1sh.healthsteptrackerpro.ui.viewmodels.HealthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(
+fun NutritionScreen(
     viewModel: HealthViewModel,
     navController: NavController
 ) {
     val state = viewModel.uiState.collectAsState().value
-    val age = remember { mutableStateOf(state.profile.age.toString()) }
-    val weight = remember { mutableStateOf(state.profile.weightKg.toString()) }
-    val height = remember { mutableStateOf(state.profile.heightCm.toString()) }
-    val steps = remember { mutableStateOf(state.profile.goalSteps.toString()) }
-    val protein = remember { mutableStateOf(state.profile.proteinGoalGrams.toString()) }
-    val calories = remember { mutableStateOf(state.profile.caloriesGoal.toString()) }
+    val foodName = remember { mutableStateOf("Chicken breast") }
+    val calories = remember { mutableStateOf("300") }
+    val protein = remember { mutableStateOf("40") }
 
     Column(
         modifier = Modifier
@@ -52,45 +51,95 @@ fun ProfileScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
-            title = { Text("Profile & body metrics") },
+            title = { Text("Nutrition") },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = null)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             }
         )
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(value = age.value, onValueChange = { age.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Age") })
-            OutlinedTextField(value = weight.value, onValueChange = { weight.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Weight (kg)") })
-            OutlinedTextField(value = height.value, onValueChange = { height.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Height (cm)") })
-            OutlinedTextField(value = steps.value, onValueChange = { steps.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Daily goal steps") })
-            OutlinedTextField(value = protein.value, onValueChange = { protein.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Protein goal (g)") })
-            OutlinedTextField(value = calories.value, onValueChange = { calories.value = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Calories goal") })
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Nutrition goals", fontWeight = FontWeight.Bold)
+                        Text("Protein: ${state.proteinConsumed}/${state.profile.proteinGoalGrams} g")
+                        Text("Calories: ${state.caloriesConsumed}/${state.profile.caloriesGoal} kcal")
+                        Text("Hydration: ${state.hydrationLiters} / ${state.profile.hydrationGoalLiters} L")
+                    }
+                }
+            }
 
-            Button(
-                onClick = {
-                    val profile = UserProfile(
-                        age = age.value.toIntOrNull() ?: state.profile.age,
-                        gender = state.profile.gender,
-                        heightCm = height.value.toIntOrNull() ?: state.profile.heightCm,
-                        weightKg = weight.value.toDoubleOrNull() ?: state.profile.weightKg,
-                        goalSteps = steps.value.toIntOrNull() ?: state.profile.goalSteps,
-                        proteinGoalGrams = protein.value.toIntOrNull() ?: state.profile.proteinGoalGrams,
-                        caloriesGoal = calories.value.toIntOrNull() ?: state.profile.caloriesGoal,
-                        hydrationGoalLiters = state.profile.hydrationGoalLiters
+            item {
+                OutlinedTextField(
+                    value = foodName.value,
+                    onValueChange = { foodName.value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Food name") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = calories.value,
+                        onValueChange = { calories.value = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("kcal") }
                     )
-                    viewModel.updateProfile(profile)
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Save body data")
+                    OutlinedTextField(
+                        value = protein.value,
+                        onValueChange = { protein.value = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Protein") }
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val c = calories.value.toIntOrNull() ?: 0
+                        val p = protein.value.toIntOrNull() ?: 0
+                        if (foodName.value.isNotBlank()) {
+                            viewModel.addNutrition(
+                                NutritionEntry(
+                                    name = foodName.value,
+                                    calories = c,
+                                    proteinGrams = p
+                                )
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Add food")
+                }
+            }
+
+            items(state.nutritionEntries) { item ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(item.name, fontWeight = FontWeight.Bold)
+                        Text("${item.proteinGrams} g / ${item.calories} kcal")
+                    }
+                }
             }
         }
     }

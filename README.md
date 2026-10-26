@@ -1,79 +1,91 @@
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
+package com.awl1sh.healthsteptrackerpro.ui.screens
 
-android {
-    namespace = "com.awl1sh.healthsteptrackerpro"
-    compileSdk = 34
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.awl1sh.healthsteptrackerpro.ui.viewmodels.HealthViewModel
 
-    defaultConfig {
-        applicationId = "com.awl1sh.healthsteptrackerpro"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoalsScreen(
+    viewModel: HealthViewModel,
+    navController: NavController
+) {
+    val state = viewModel.uiState.collectAsState().value
+    val stepProgress = viewModel.stepsProgress()
+    val proteinProgress = viewModel.proteinProgress()
+    val hydrationProgress = viewModel.hydrationProgress()
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
-    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = { Text("Daily goals") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+            }
+        )
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            GoalCard(
+                title = "Steps",
+                value = "${state.steps} / ${state.profile.goalSteps}",
+                progress = stepProgress
+            )
+            GoalCard(
+                title = "Protein",
+                value = "${state.proteinConsumed} / ${state.profile.proteinGoalGrams} g",
+                progress = proteinProgress
+            )
+            GoalCard(
+                title = "Hydration",
+                value = "${String.format("%.2f", state.hydrationLiters)} / ${state.profile.hydrationGoalLiters} L",
+                progress = hydrationProgress
             )
         }
     }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
 }
 
-dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-
-    implementation("io.coil-kt:coil-compose:2.6.0")
-
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+@Composable
+private fun GoalCard(title: String, value: String, progress: Float) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(value)
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 8.dp))
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        }
+    }
 }

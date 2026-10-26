@@ -9,7 +9,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.awl1sh.healthsteptrackerpro.data.repository.HealthRepository
+import com.awl1sh.healthsteptrackerpro.ui.screens.GoalsScreen
 import com.awl1sh.healthsteptrackerpro.ui.screens.HomeScreen
+import com.awl1sh.healthsteptrackerpro.ui.screens.HydrationScreen
 import com.awl1sh.healthsteptrackerpro.ui.screens.NutritionScreen
 import com.awl1sh.healthsteptrackerpro.ui.screens.ProfileScreen
 import com.awl1sh.healthsteptrackerpro.ui.screens.SettingsScreen
@@ -30,7 +32,7 @@ fun HealthApp(tracker: StepTrackerManager) {
 
     val uiState by viewModel.uiState.collectAsState()
     if (uiState.profile.goalSteps == 0) {
-        // ignore, profile defaults loaded from DataStore
+        // default values are loaded from DataStore
     }
 
     NavHost(
@@ -51,6 +53,8 @@ fun HealthApp(tracker: StepTrackerManager) {
                 navController = navController,
                 onOpenHistory = { navController.navigate("history") },
                 onOpenNutrition = { navController.navigate("nutrition") },
+                onOpenHydration = { navController.navigate("hydration") },
+                onOpenGoals = { navController.navigate("goals") },
                 onOpenProfile = { navController.navigate("profile") },
                 onOpenSettings = { navController.navigate("settings") }
             )
@@ -62,6 +66,14 @@ fun HealthApp(tracker: StepTrackerManager) {
 
         composable("nutrition") {
             NutritionScreen(viewModel = viewModel, navController = navController)
+        }
+
+        composable("hydration") {
+            HydrationScreen(viewModel = viewModel, navController = navController)
+        }
+
+        composable("goals") {
+            GoalsScreen(viewModel = viewModel, navController = navController)
         }
 
         composable("profile") {
